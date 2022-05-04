@@ -1,40 +1,45 @@
 import axios, { AxiosRequestConfig } from "axios";
-import express from "express";
+import followRedirect from "follow-redirects";
+import request from "request";
+const { http, https } = require("follow-redirects");
 
-const app = express();
-function isSpam(
+const http_regEx = /\bhttps?:\/\/.*?\.[a-z]{2,4}\b\S*/g;
+
+export const isSpam = async (
   content: string,
   spamLinkDomains: string[],
   redirectionDepth: number
-): boolean {
-  let spamCheck!: boolean;
-  let regEx = /\bhttps?:\/\/.*?\.[a-z]{2,4}\b\S*/g;
-  const urlCheck: RegExpMatchArray | null = content.match(regEx);
-  let url!: string;
-  if (urlCheck) {
-    url = urlCheck![0];
-  }
+) => {
+  const urlCheck = content.match(http_regEx);
+  const url = urlCheck![0];
 
-  const response = axios
-    .get(`${url}`)
-    .then(function (response) {
-      const redirectUrl = response.request.res.responseUrl;
-      const redirectCount = response.request._redirectable._redirectCount;
+  return await spamCheck(url, spamLinkDomains, redirectionDepth);
+};
 
-      spamCheck =
-        redirectCount === redirectionDepth && redirectUrl === spamLinkDomains[0]
-          ? true
-          : false;
-      return spamCheck;
+const spamCheck = async (
+  url: string,
+  spamLinkDomains: string[],
+  redirectionDepth: number
+) => {
+  https
+    .get(`${url}`, (response) => {
+      response.on("data", (res) => {
+        console.log(res.headers);
+      });
     })
-    .catch(function (err) {
-      console.error("err");
+    .on("error", (err) => {
+      console.error(err);
     });
-  return spamCheck;
-}
+  //   const spamChecker =
+  //     redirectCount === redirectionDepth && redirectUrl === spamLinkDomains[0];
 
-console.log(
-  isSpam("spam spam https://moimstg.page.link/dmCn", ["https://github.com"], 2)
-);
+  return true;
+};
 
-export { isSpam };
+isSpam(
+  "spam spam https://moimstg.page.link/dmCn",
+  ["https://github.com"],
+  2
+).then((result) => {
+  console.log(result);
+});
