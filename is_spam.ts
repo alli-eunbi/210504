@@ -1,7 +1,8 @@
 import axios, { AxiosRequestConfig } from "axios";
 import followRedirect from "follow-redirects";
-import request from "request";
+// import request from "request";
 const { http, https } = require("follow-redirects");
+const url = require("url");
 
 const http_regEx = /\bhttps?:\/\/.*?\.[a-z]{2,4}\b\S*/g;
 
@@ -23,8 +24,9 @@ const spamCheck = async (
 ) => {
   https
     .get(`${url}`, (response) => {
+      console.log(response.responseUrl);
       response.on("data", (res) => {
-        console.log(res.headers);
+        // console.log(res.headers.location);
       });
     })
     .on("error", (err) => {
@@ -43,3 +45,18 @@ isSpam(
 ).then((result) => {
   console.log(result);
 });
+
+const request = function (url) {
+  https
+    .get(url, (response) => {
+      var body = [];
+      if (response.statusCode == 302) {
+        body = [];
+        request(response.headers.location);
+        console.log(request(response.headers.location));
+      } else {
+      }
+    })
+    .on("error" /*...*/);
+};
+request("https://moimstg.page.link/dmCn");
